@@ -1,5 +1,5 @@
 import { connect } from 'cloudflare:sockets';
-import { ipReport, json, parseTcpTarget } from './lib.js';
+import { connectErrorCode, ipReport, json, parseTcpTarget } from './lib.js';
 
 const TCP_TIMEOUT_MS = 5000;
 
@@ -21,7 +21,7 @@ async function tcpCheck(url, request) {
     const ms = Date.now() - started;
     return json({ ok: true, host: target.host, port: target.port, ms, colo, measuredFrom: 'cloudflare-edge' });
   } catch (err) {
-    const error = err?.message === 'timeout' ? 'timeout' : 'connect-failed';
+    const error = connectErrorCode(err);
     return json({
       ok: false, host: target.host, port: target.port, colo, measuredFrom: 'cloudflare-edge',
       error, detail: error === 'timeout' ? null : String(err?.message || err).slice(0, 200),

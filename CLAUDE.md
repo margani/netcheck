@@ -23,6 +23,10 @@ and a TCP-connect timing from Cloudflare's edge.
 - `/api/tcp` only connects to the ports in `TCP_PORTS` and refuses private/reserved
   addresses. Never widen it to arbitrary ports: it would become a port scanner on
   Cloudflare's network.
+- Workers `connect()` cannot reach hosts behind Cloudflare's proxy (example.com is one):
+  "cannot connect to the specified address ... consider using fetch". Local `wrangler dev`
+  connects from the laptop and hides this; check `/api/tcp` on the deployed sandbox with a
+  Cloudflare host and a non-Cloudflare one (github.com, 8.8.8.8) (#3, 2026-10-31).
 - Globalping: the request takes one global `limit`; a per-location `limit` next to it is
   rejected with "Parameter validation failed" (2026-10-31). Show the API's `params` in errors.
   Anonymous quota is 250 tests per hour per IP; each probe counts as one test.
