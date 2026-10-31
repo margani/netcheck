@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نت‌چک</title>
+<meta name="description" content="Your IP, plus ping, traceroute, DNS and HTTP checks from around the world. No ads, no tracking.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232f6f5e'/%3E%3Cpath d='M9 17l5 5 9-11' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --text: #1d1d1f;
+    --muted: #63636a;
+    --border: #e2e0da;
+    --accent: #2f6f5e;
+    --on-accent: #ffffff;
+    --focus: #2f6f5e55;
+    --code-bg: #f0efe9;
+    --ok: #2f6f5e;
+    --bad: #b3261e;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141416;
+      --surface: #1e1e21;
+      --text: #ececee;
+      --muted: #a2a2aa;
+      --border: #333338;
+      --accent: #6cc4a8;
+      --on-accent: #10201b;
+      --focus: #6cc4a855;
+      --code-bg: #26262a;
+      --ok: #6cc4a8;
+      --bad: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  /* .field sets display:flex, which would otherwise beat the hidden attribute. */
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Vazirmatn", system-ui, sans-serif; line-height: 1.6;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-block-end: 18px; }
+  header h1 { margin: 0; font-size: 1.6rem; }
+  header p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .lang-toggle {
+    flex: none; border: 1px solid var(--border); background: var(--surface);
+    border-radius: 999px; padding: 6px 14px; cursor: pointer;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; margin-block-end: 16px;
+  }
+  .card h2 { margin: 0 0 4px; font-size: 1.2rem; }
+  .note { color: var(--muted); font-size: .9rem; margin: 0 0 14px; }
+  .ltr { direction: ltr; unicode-bidi: isolate; }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .ip-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-block: 6px 14px; }
+  .ip {
+    font-size: clamp(1.25rem, 5vw, 2rem); font-weight: 700; overflow-wrap: anywhere;
+    direction: ltr; unicode-bidi: isolate; min-width: 0;
+  }
+  .btn {
+    border: 1px solid var(--border); background: var(--surface); border-radius: 10px;
+    padding: 7px 14px; cursor: pointer; white-space: nowrap;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  dl.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px 16px; margin: 0; }
+  dl.facts div { min-width: 0; }
+  dl.facts dt { color: var(--muted); font-size: .85rem; }
+  dl.facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+  details { margin-block-start: 14px; }
+  summary { cursor: pointer; color: var(--accent); }
+  .table-scroll { overflow-x: auto; margin-block-start: 8px; }
+  table.headers { border-collapse: collapse; width: 100%; font-size: .85rem; direction: ltr; }
+  table.headers td { border-block-end: 1px solid var(--border); padding: 4px 6px; vertical-align: top; overflow-wrap: anywhere; }
+  table.headers td:first-child { color: var(--muted); white-space: nowrap; }
+  .links { display: flex; gap: 14px; flex-wrap: wrap; margin-block-start: 12px; font-size: .9rem; }
+  .types { display: flex; flex-wrap: wrap; gap: 6px; margin-block-end: 12px; border: 0; padding: 0; }
+  .types legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .types label {
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 14px; cursor: pointer;
+  }
+  .types input { position: absolute; opacity: 0; pointer-events: none; }
+  .types input:checked + span { color: var(--accent); font-weight: 700; }
+  .types label:has(input:checked) { border-color: var(--accent); }
+  .types label:has(input:focus-visible) { outline: 3px solid var(--focus); }
+  .fields { display: grid; grid-template-columns: 2fr 1.4fr .8fr; gap: 10px; align-items: end; }
+  .fields.with-dns { grid-template-columns: 2fr 1.4fr .8fr .8fr; }
+  .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .field span { font-size: .85rem; color: var(--muted); }
+  .field input, .field select {
+    width: 100%; border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 8px 10px;
+  }
+  .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-block-start: 12px; }
+  .status { color: var(--muted); font-size: .9rem; }
+  .status.error { color: var(--bad); }
+  ul.results { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+  ul.results li { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+  .probe { font-weight: 600; overflow-wrap: anywhere; }
+  .summary { font-size: .95rem; overflow-wrap: anywhere; }
+  .summary.failed { color: var(--bad); }
+  pre {
+    background: var(--code-bg); border-radius: 8px; padding: 10px; overflow-x: auto;
+    font-size: .8rem; line-height: 1.45; direction: ltr; text-align: left; margin: 8px 0 0;
+  }
+  .edge-row { display: grid; grid-template-columns: 1fr 140px auto; gap: 10px; align-items: end; }
+  .edge-result { margin-block-start: 10px; }
+  .edge-result.ok { color: var(--ok); font-weight: 600; }
+  .edge-result.bad { color: var(--bad); }
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-block-start: 24px; }
+  footer p { margin: 4px 0; }
+  @media (max-width: 640px) {
+    .fields, .fields.with-dns { grid-template-columns: 1fr 1fr; }
+    .fields .field.target { grid-column: 1 / -1; }
+    .edge-row { grid-template-columns: 1fr 110px; }
+    .edge-row .btn { grid-column: 1 / -1; }
+    header { align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 data-i18n="title">نت‌چک</h1>
+      <p data-i18n="tagline">آی‌پی شما، و پینگ، تریس‌روت، DNS و HTTP از نقاط مختلف دنیا</p>
+    </div>
+    <button type="button" class="lang-toggle" id="lang-toggle" lang="en">English</button>
+  </header>
+
+  <main>
+    <section class="card" id="ip-card" aria-labelledby="ip-title">
+      <h2 id="ip-title" data-i18n="myIp">آی‌پی من</h2>
+      <div class="ip-row">
+        <code class="ip" id="ip" aria-live="polite">…</code>
+        <button type="button" class="btn" id="copy-ip" data-i18n="copy">کپی</button>
+      </div>
+      <dl class="facts" id="facts"></dl>
+      <details>
+        <summary data-i18n="headers">هدرهای درخواست شما</summary>
+        <div class="table-scroll"><table class="headers"><tbody id="headers"></tbody></table></div>
+      </details>
+      <p class="note" style="margin:12px 0 0" data-i18n="ipNote">این‌ها را کلودفلر از روی همین اتصال می‌بیند. چیزی ذخیره نمی‌شود.</p>
+      <div class="links">
+        <a href="/api/ip" data-i18n="asJson">همین به صورت JSON</a>
+        <a href="/api/ip.txt" data-i18n="asText">فقط آی‌پی، برای curl</a>
+      </div>
+    </section>
+
+    <section class="card" id="checks-card" aria-labelledby="checks-title">
+      <h2 id="checks-title" data-i18n="checks">آزمون از نقاط مختلف دنیا</h2>
+      <p class="note" data-i18n="checksNote">این آزمون‌ها روی دستگاه‌های داوطلب Globalping در کشورهای مختلف اجرا می‌شوند، نه روی دستگاه شما.</p>
+      <form id="check-form" novalidate>
+        <fieldset class="types">
+          <legend data-i18n="type">نوع آزمون</legend>
+          <label><input type="radio" name="type" value="ping" checked><span data-i18n="ping">پینگ</span></label>
+          <label><input type="radio" name="type" value="traceroute"><span data-i18n="traceroute">تریس‌روت</span></label>
+          <label><input type="radio" name="type" value="dns"><span>DNS</span></label>
+          <label><input type="radio" name="type" value="http"><span>HTTP</span></label>
+        </fieldset>
+        <div class="fields" id="fields">
+          <label class="field target"><span data-i18n="target">مقصد (دامنه یا آی‌پی)</span>
+            <input id="target" name="target" class="ltr" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="example.com" required></label>
+          <label class="field"><span data-i18n="from">از کجا</span>
+            <input id="location" name="location" dir="ltr" class="ltr" autocomplete="off" placeholder="world" value="world"></label>
+          <label class="field"><span data-i18n="probes">تعداد نقطه</span>
+            <select id="limit" name="limit"><option>1</option><option selected>3</option><option>5</option><option>10</option></select></label>
+          <label class="field" id="dns-field" hidden><span data-i18n="dnsType">نوع رکورد</span>
+            <select id="dns-type" name="dnsType" class="ltr"></select></label>
+        </div>
+        <p class="note" style="margin:8px 0 0" data-i18n="fromHint">مکان را به انگلیسی بنویسید: کشور، شهر، قاره یا شمارهٔ شبکه، مثل Germany یا Asia یا AS13335.</p>
+        <div class="actions">
+          <button type="submit" class="btn primary" id="run" data-i18n="run">اجرا</button>
+          <span class="status" id="check-status" role="status"></span>
+        </div>
+      </form>
+      <ul class="results" id="results"></ul>
+    </section>
+
+    <section class="card" id="edge-card" aria-labelledby="edge-title">
+      <h2 id="edge-title" data-i18n="edge">اتصال TCP از لبهٔ کلودفلر</h2>
+      <p class="note" data-i18n="edgeNote">این زمان از دیتاسنتر کلودفلرِ نزدیک شما اندازه گرفته می‌شود، نه از دستگاه شما. فقط پورت‌های رایج مجازند.</p>
+      <form id="edge-form" class="edge-row" novalidate>
+        <label class="field"><span data-i18n="host">میزبان</span>
+          <input id="edge-host" class="ltr" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="example.com"></label>
+        <label class="field"><span data-i18n="port">پورت</span>
+          <select id="edge-port" class="ltr"></select></label>
+        <button type="submit" class="btn primary" id="edge-run" data-i18n="connect">آزمون اتصال</button>
+      </form>
+      <div class="edge-result" id="edge-result" role="status"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p data-i18n="noTracking">بدون تبلیغ، بدون ردیابی، بدون آنالیتیکس.</p>
+    <p><span data-i18n="credit">آزمون‌های جهانی با</span> <a href="https://globalping.io" rel="noopener">Globalping</a> · <a href="https://github.com/margani/netcheck" rel="noopener" data-i18n="source">کد منبع (MIT)</a></p>
+  </footer>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
