@@ -17,10 +17,12 @@ No ads, no tracking, no analytics.
   Globalping API directly, so the checks count against your own anonymous quota
   (250 tests per hour per IP, at most 50 probes per test, as of 2026-10-31; the page asks for
   at most 10).
-- **TCP connect from Cloudflare's edge**: `/api/tcp?host=example.com&port=443` times a TCP
+- **TCP connect from Cloudflare's edge**: `/api/tcp?host=github.com&port=443` times a TCP
   connection with the Workers `connect()` API. It is measured from the Cloudflare data centre
   nearest to you, **not from your device**, and only to common ports (22, 53, 80, 443, 853, 993,
   995, 3389, 5222, 8080, 8443) and public addresses, so it cannot be used as a port scanner.
+  Hosts behind Cloudflare's proxy cannot be reached this way: Workers do not allow TCP
+  connections to them, and the page says so.
 
 Sandbox: https://netcheck-sandbox.whosane.workers.dev
 

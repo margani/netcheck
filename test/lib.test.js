@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ipReport, ipVersion, isPrivateAddress, parseTcpTarget, TCP_PORTS } from '../src/lib.js';
+import { connectErrorCode, ipReport, ipVersion, isPrivateAddress, parseTcpTarget, TCP_PORTS } from '../src/lib.js';
 
 test('ipReport reads the visitor IP, cf fields and headers', async () => {
   const request = {
@@ -57,4 +57,13 @@ test('parseTcpTarget refuses what would make it a scanner or an internal probe',
   assert.equal(parseTcpTarget('exa mple.com', 80).error, 'bad-host');
   assert.equal(parseTcpTarget('http://example.com', 80).error, 'bad-host');
   assert.equal(parseTcpTarget('nodot', 80).error, 'bad-host');
+});
+
+test('connectErrorCode names the Cloudflare-proxied case (#3)', () => {
+  // The exact message the deployed Worker got for example.com:443 on 2026-10-31.
+  const real = 'proxy request failed, cannot connect to the specified address. It looks like you might be trying to connect to a HTTP-based service \u2014 consider using fetch instead';
+  assert.equal(connectErrorCode(new Error(real)), 'cloudflare-host');
+  assert.equal(connectErrorCode(new Error('timeout')), 'timeout');
+  assert.equal(connectErrorCode(new Error('Network connection lost.')), 'connect-failed');
+  assert.equal(connectErrorCode(undefined), 'connect-failed');
 });

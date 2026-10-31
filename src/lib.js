@@ -85,3 +85,14 @@ export function parseTcpTarget(rawHost, rawPort) {
   if (!isV4 && !isV6 && !HOSTNAME.test(host)) return { error: 'bad-host' };
   return { host, port };
 }
+
+// Maps a connect() failure to a code the page translates. Workers cannot open TCP
+// sockets to hosts behind Cloudflare's proxy; the runtime says "cannot connect to
+// the specified address ... consider using fetch" (seen for example.com:443 on
+// 2026-10-31, #3). Telling people that is more useful than "could not connect".
+export function connectErrorCode(err) {
+  const msg = String(err?.message || '');
+  if (msg === 'timeout') return 'timeout';
+  if (/cannot connect to the specified address|consider using fetch/i.test(msg)) return 'cloudflare-host';
+  return 'connect-failed';
+}
