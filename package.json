@@ -1,0 +1,12 @@
+{
+  "name": "netcheck",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Your IP, plus ping, traceroute, DNS and HTTP checks from around the world. No ads, no tracking.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "dev": "npx --yes wrangler@4.150.0 dev"
+  }
+}

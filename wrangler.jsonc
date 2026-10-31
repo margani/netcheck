@@ -1,0 +1,23 @@
+{
+	// Forks: change account_id and the routes to your own, or delete them and use workers.dev.
+	"name": "netcheck",
+	"account_id": "cbaf7c8b254ee4af435b9d6e32d2c6f1",
+	"main": "src/worker.js",
+	"compatibility_date": "2026-10-05",
+	"assets": {
+		"directory": "public",
+		"binding": "ASSETS",
+		// Only /api/* runs the script; the page itself is served straight from assets.
+		"run_worker_first": ["/api/*"]
+	},
+	"workers_dev": false,
+	"preview_urls": false,
+	"routes": [{ "pattern": "netcheck.whosane.dev", "custom_domain": true }],
+	"env": {
+		// Sandbox: Worker "netcheck-sandbox" on https://netcheck-sandbox.whosane.workers.dev
+		"sandbox": {
+			"workers_dev": true,
+			"routes": []
+		}
+	}
+}
