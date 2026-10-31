@@ -4,6 +4,9 @@ Public, MIT-licensed network check tool (github.com/margani/netcheck): my IP fro
 Cloudflare Worker, ping/traceroute/DNS/HTTP through the Globalping API from the browser,
 and a TCP-connect timing from Cloudflare's edge.
 
+Product context for design work is in `PRODUCT.md` (written by `/impeccable init` on 2026-10-31
+without an interview; every line is marked inferred until the owner confirms it).
+
 ## Rules
 
 - No ads, no tracking, no analytics, no third-party scripts. The only external calls are
