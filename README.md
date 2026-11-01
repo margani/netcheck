@@ -12,11 +12,15 @@ No ads, no tracking, no analytics.
   curl https://netcheck.whosane.dev/api/ip.txt
   ```
 
-- **Ping, traceroute, DNS, HTTP**: a Worker cannot send ICMP, so these run on the free
+- **Ping, traceroute, MTR, DNS, HTTP**: a Worker cannot send ICMP, so these run on the free
   [Globalping](https://globalping.io) network of volunteer probes. Your browser calls the
   Globalping API directly, so the checks count against your own anonymous quota
   (250 tests per hour per IP, at most 50 probes per test, as of 2026-10-31; the page asks for
-  at most 10).
+  at most 10). **From my country** fills in your own country so a check runs from inside it.
+  If your free quota runs out, the check is retried once through the Worker
+  (`POST /api/gp/measurements`) with netcheck's own Globalping key, when one is configured
+  as the Worker secret `GLOBALPING_TOKEN`. The key never reaches the page, and only this
+  page can use it.
 - **TCP connect from Cloudflare's edge**: `/api/tcp?host=github.com&port=443` times a TCP
   connection with the Workers `connect()` API. It is measured from the Cloudflare data centre
   nearest to you, **not from your device**, and only to common ports (22, 53, 80, 443, 853, 993,

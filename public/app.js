@@ -1,4 +1,4 @@
-import { DNS_TYPES, buildMeasurement, probeLabel, runMeasurement, summarize } from './globalping.js';
+import { DNS_TYPES, buildMeasurement, myCountryLocation, probeLabel, runMeasurement, summarize } from './globalping.js';
 
 const TCP_PORTS = [443, 80, 22, 53, 853, 993, 995, 3389, 5222, 8080, 8443];
 
@@ -21,6 +21,9 @@ const STRINGS = {
     target: 'مقصد (دامنه یا آی‌پی)', from: 'از کجا', probes: 'تعداد نقطه', dnsType: 'نوع رکورد',
     fromHint: 'مکان را به انگلیسی بنویسید: کشور، شهر، قاره یا شمارهٔ شبکه، مثل Germany یا Asia یا AS13335.',
     run: 'اجرا', running: 'در حال اجرا…', done: 'تمام شد.',
+    myCountry: 'از کشور خودم',
+    viaKey: 'سهمیهٔ رایگان شما تمام شده بود، پس این آزمون با کلید مشترک نت‌چک اجرا شد.',
+    mtrLast: 'گام آخر: میانگین {ms} میلی‌ثانیه، از دست رفته {loss} درصد',
     quota: 'سهمیهٔ باقی‌ماندهٔ این ساعت در Globalping: {n}',
     badTarget: 'مقصد معتبر نیست.',
     rateLimited: 'سهمیهٔ رایگان Globalping برای این ساعت تمام شده. کمی بعد دوباره امتحان کنید.',
@@ -65,6 +68,9 @@ const STRINGS = {
     target: 'Target (domain or IP)', from: 'From', probes: 'Probes', dnsType: 'Record type',
     fromHint: 'A country, city, continent or network, e.g. Germany, Asia or AS13335.',
     run: 'Run', running: 'Running…', done: 'Done.',
+    myCountry: 'From my country',
+    viaKey: 'Your free quota was used up, so this check ran on netcheck\u2019s shared key.',
+    mtrLast: 'last hop avg {ms} ms, loss {loss}%',
     quota: 'Globalping checks left this hour: {n}',
     badTarget: 'That target is not valid.',
     rateLimited: 'The free Globalping quota for this hour is used up. Try again a bit later.',
@@ -179,6 +185,10 @@ async function loadIp() {
       body.append(tr);
     }
     renderFacts();
+    const code = myCountryLocation(ipData);
+    const btn = $('my-country');
+    btn.hidden = !code;
+    btn.title = code || '';
   } catch {
     $('ip').textContent = t('ipFailed');
   }
@@ -195,6 +205,11 @@ $('copy-ip').addEventListener('click', async () => {
 });
 
 // ---- Globalping checks ----
+
+$('my-country').addEventListener('click', () => {
+  const code = myCountryLocation(ipData);
+  if (code) $('location').value = code;
+});
 
 const dnsSelect = $('dns-type');
 for (const type of DNS_TYPES) dnsSelect.append(new Option(type, type));
@@ -216,6 +231,7 @@ function summaryText(type, s) {
     case 'failed': return t('failed');
     case 'ping': return `${t('avg')} ${s.avg} ${t('ms')} · ${t('min')} ${s.min} · ${t('max')} ${s.max} · ${t('loss')} ${t('pct', { n: s.loss })}`;
     case 'traceroute': return [t('hops', { n: s.hops }), s.lastMs != null ? t('lastHop', { ms: s.lastMs }) : null].filter(Boolean).join(' · ');
+    case 'mtr': return [t('hops', { n: s.hops }), t('mtrLast', { ms: s.lastAvg, loss: s.lastLoss })].join(' · ');
     case 'dns': return [s.answers.length ? s.answers.join(', ') : t('noAnswers'), s.ms != null ? `${t('time')} ${s.ms} ${t('ms')}` : null].filter(Boolean).join(' · ');
     case 'http': return `${t('status')} ${s.status}${s.ms != null ? ` · ${t('time')} ${s.ms} ${t('ms')}` : ''}`;
   }
@@ -281,14 +297,16 @@ $('check-form').addEventListener('submit', async (e) => {
   $('results').replaceChildren();
   lastRun = null;
   try {
-    const { measurement, quota, timedOut } = await runMeasurement(body, {
+    const { measurement, quota, timedOut, viaKey } = await runMeasurement(body, {
       signal: controller.signal,
+      fallbackUrl: '/api/gp/measurements',
       onUpdate: (m) => { lastRun = { type, measurement: m }; renderResults(type, m); },
     });
     lastRun = { type, measurement };
     renderResults(type, measurement);
     const parts = [timedOut ? t('timedOut') : t('done')];
-    if (Number.isFinite(quota.remaining)) parts.push(t('quota', { n: quota.remaining }));
+    if (viaKey) parts.push(t('viaKey'));
+    else if (Number.isFinite(quota.remaining)) parts.push(t('quota', { n: quota.remaining }));
     setStatus(parts.join(' '));
   } catch (err) {
     if (err.name === 'AbortError') return;

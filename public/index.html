@@ -105,6 +105,11 @@
   .field input, .field select {
     width: 100%; border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 8px 10px;
   }
+  .hint-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-block-start: 8px; }
+  .link-btn {
+    align-self: flex-start; border: 0; background: none; padding: 0; color: var(--accent);
+    text-decoration: underline; cursor: pointer; font-size: .85rem;
+  }
   .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-block-start: 12px; }
   .status { color: var(--muted); font-size: .9rem; }
   .status.error { color: var(--bad); }
@@ -169,6 +174,7 @@
           <legend data-i18n="type">نوع آزمون</legend>
           <label><input type="radio" name="type" value="ping" checked><span data-i18n="ping">پینگ</span></label>
           <label><input type="radio" name="type" value="traceroute"><span data-i18n="traceroute">تریس‌روت</span></label>
+          <label><input type="radio" name="type" value="mtr"><span>MTR</span></label>
           <label><input type="radio" name="type" value="dns"><span>DNS</span></label>
           <label><input type="radio" name="type" value="http"><span>HTTP</span></label>
         </fieldset>
@@ -182,7 +188,10 @@
           <label class="field" id="dns-field" hidden><span data-i18n="dnsType">نوع رکورد</span>
             <select id="dns-type" name="dnsType" class="ltr"></select></label>
         </div>
-        <p class="note" style="margin:8px 0 0" data-i18n="fromHint">مکان را به انگلیسی بنویسید: کشور، شهر، قاره یا شمارهٔ شبکه، مثل Germany یا Asia یا AS13335.</p>
+        <div class="hint-row">
+          <button type="button" class="link-btn" id="my-country" data-i18n="myCountry" hidden>از کشور خودم</button>
+          <p class="note" style="margin:0" data-i18n="fromHint">مکان را به انگلیسی بنویسید: کشور، شهر، قاره یا شمارهٔ شبکه، مثل Germany یا Asia یا AS13335.</p>
+        </div>
         <div class="actions">
           <button type="submit" class="btn primary" id="run" data-i18n="run">اجرا</button>
           <span class="status" id="check-status" role="status"></span>

@@ -6,6 +6,8 @@
 > and asked (through the hub session) not to be asked questions tonight. Every fact
 > below comes from the project brief and the repository and is marked
 > **(inferred, owner to confirm)**. Remove a marker once the owner confirms that line.
+> On 2026-11-01 the owner confirmed Users, Positioning and Brand Commitments as written;
+> the other inferred lines are still unconfirmed.
 
 ## Platform
 
@@ -15,13 +17,13 @@ web (inferred, owner to confirm: a responsive web page; no native app is planned
 
 - People who want to know how their own connection looks from outside: their public IP,
   the country and network it is attributed to, and the request headers they send.
-  (inferred, owner to confirm)
+  (owner confirmed 2026-11-01)
 - Persian-speaking users are a primary audience alongside English-speaking ones, including
   people checking whether a site or service is reachable from outside their own network
   (for example from other countries). The page defaults to Persian for `fa*` browsers.
-  (inferred, owner to confirm)
+  (owner confirmed 2026-11-01)
 - Developers and admins who need a quick ping, traceroute, DNS or HTTP check from several
-  places in the world, often from a phone (the brief requires 390px). (inferred, owner to confirm)
+  places in the world, often from a phone (the brief requires 390px). (owner confirmed 2026-11-01)
 
 ## Product Purpose
 
@@ -33,12 +35,12 @@ in seconds, readable in Persian or English, on any screen. (inferred, owner to c
 
 - Free of ads, tracking and analytics, open source (MIT). The 2023 idea for this tool
   (margani/net-tools) planned ads; this product deliberately drops them.
-  (inferred, owner to confirm)
+  (owner confirmed 2026-11-01)
 - Bilingual Persian/English with correct right-to-left layout, which most network tools lack.
-  (inferred, owner to confirm)
+  (owner confirmed 2026-11-01)
 - Honest about where each number is measured: world checks come from Globalping's probes,
   the TCP timing from Cloudflare's edge, never presented as measured from the user's device.
-  (inferred from the brief, owner to confirm)
+  (owner confirmed 2026-11-01)
 
 ## Operating Context
 
@@ -65,14 +67,14 @@ in seconds, readable in Persian or English, on any screen. (inferred, owner to c
 - Production runs on netcheck.whosane.dev (launched 2026-11-01). Production deploys need the
   owner's approval. Do not use or claim the netcheck.online domain or name; it belongs to
   someone else. (from the brief)
-- Undecided: whether MTR or a "check from my own country" shortcut is wanted; any API key
-  for Globalping (higher limits). (open, owner to decide)
+- Planned next (owner decided 2026-11-01): an MTR check, a one-click "from my country"
+  shortcut, and a Globalping API key for higher limits (kept server-side, never in the page).
 
 ## Brand Commitments
 
-- Name: "netcheck" in English, «نت‌چک» in Persian. (inferred, owner to confirm)
+- Name: "netcheck" in English, «نت‌چک» in Persian. (owner confirmed 2026-11-01)
 - Voice: plain and factual, says what is measured from where; no marketing claims.
-  (inferred, owner to confirm)
+  (owner confirmed 2026-11-01)
 
 ## Evidence on Hand
 

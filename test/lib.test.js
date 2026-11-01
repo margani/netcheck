@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { connectErrorCode, ipReport, ipVersion, isPrivateAddress, parseTcpTarget, TCP_PORTS } from '../src/lib.js';
+import { checkProxyRequest, connectErrorCode, ipReport, ipVersion, isPrivateAddress, parseTcpTarget, TCP_PORTS } from '../src/lib.js';
 
 test('ipReport reads the visitor IP, cf fields and headers', async () => {
   const request = {
@@ -66,4 +66,18 @@ test('connectErrorCode names the Cloudflare-proxied case (#3)', () => {
   assert.equal(connectErrorCode(new Error('timeout')), 'timeout');
   assert.equal(connectErrorCode(new Error('Network connection lost.')), 'connect-failed');
   assert.equal(connectErrorCode(undefined), 'connect-failed');
+});
+
+test('checkProxyRequest only lets the page itself spend the key (#13)', () => {
+  const origin = 'https://netcheck.whosane.dev';
+  const ok = { type: 'ping', target: 'github.com', locations: [{ magic: 'world' }], limit: 3, measurementOptions: { packets: 4 } };
+  assert.deepEqual(checkProxyRequest(origin, origin, ok), { ok: true });
+  assert.equal(checkProxyRequest('https://evil.example', origin, ok).error, 'forbidden-origin');
+  assert.equal(checkProxyRequest(null, origin, ok).error, 'forbidden-origin');
+  assert.equal(checkProxyRequest(origin, origin, { ...ok, limit: 11 }).error, 'bad-request');
+  assert.equal(checkProxyRequest(origin, origin, { ...ok, limit: 0 }).error, 'bad-request');
+  assert.equal(checkProxyRequest(origin, origin, { ...ok, type: 'bogus' }).error, 'bad-request');
+  assert.equal(checkProxyRequest(origin, origin, { ...ok, locations: Array(6).fill({ magic: 'x' }) }).error, 'bad-request');
+  assert.equal(checkProxyRequest(origin, origin, null).error, 'bad-request');
+  assert.equal(checkProxyRequest(origin, origin, { ...ok, target: '' }).error, 'bad-request');
 });
