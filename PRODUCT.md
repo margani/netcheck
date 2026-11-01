@@ -62,7 +62,7 @@ in seconds, readable in Persian or English, on any screen. (inferred, owner to c
   (from the brief)
 - Static assets plus a small Worker, no framework, no build step. (built; owner's usual stack)
 - Must work at 390px, light and dark, Persian (RTL) and English. (from the brief)
-- Production address netcheck.whosane.dev is chosen but not launched; launch needs the
+- Production runs on netcheck.whosane.dev (launched 2026-11-01). Production deploys need the
   owner's approval. Do not use or claim the netcheck.online domain or name; it belongs to
   someone else. (from the brief)
 - Undecided: whether MTR or a "check from my own country" shortcut is wanted; any API key

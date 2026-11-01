@@ -45,10 +45,14 @@ without an interview; every line is marked inferred until the owner confirms it)
 ## Hosting
 
 - Cloudflare **Hossein** account (`cbaf7c8b254ee4af435b9d6e32d2c6f1`).
+- Branches: work PRs target `sandbox`; a release PR `sandbox` → `main` ships to production.
+  A merge to `main` deploys production, so it needs the owner's explicit approval.
 - Sandbox: Worker `netcheck-sandbox` (`wrangler deploy --env sandbox`) on
-  https://netcheck-sandbox.whosane.workers.dev, deployed by a Workers Builds trigger on `main`
-  running `bash scripts/deploy.sh sandbox`.
-- Production: Worker `netcheck` on custom domain `netcheck.whosane.dev` (zone whosane.dev, same
-  account). Its Workers Builds trigger runs `bash scripts/deploy.sh`. Launching it needs the
-  owner's explicit approval.
+  https://netcheck-sandbox.whosane.workers.dev, deployed by Workers Builds trigger
+  `netcheck-sandbox` on branch `sandbox` running `bash scripts/deploy.sh sandbox`.
+- Production: Worker `netcheck` on custom domain https://netcheck.whosane.dev (zone whosane.dev,
+  same account), Workers Builds trigger `netcheck` on `main` running `bash scripts/deploy.sh`.
+  Launched 2026-11-01 (#5). `netcheck.whosane.workers.dev` is off.
+- Both Workers were created once with `cfwrangler --edit deploy` so their build triggers had a
+  Worker to attach to (Workers Builds needs the script to exist); every deploy since is a build.
 - Verify a deploy with `/version.json`, which must name the merged commit. Never deploy by hand.

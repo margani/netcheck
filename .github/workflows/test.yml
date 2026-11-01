@@ -2,7 +2,7 @@ name: test
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, sandbox]
 permissions:
   contents: read
 jobs:
