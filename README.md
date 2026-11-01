@@ -5,11 +5,11 @@ No ads, no tracking, no analytics.
 
 - **My IP**: a small Cloudflare Worker returns the address Cloudflare sees (`CF-Connecting-IP`),
   your country, city, network (ASN), the Cloudflare data centre that served you, and your request
-  headers. As a page, as JSON at [`/api/ip`](https://netcheck-sandbox.whosane.workers.dev/api/ip),
+  headers. As a page, as JSON at [`/api/ip`](https://netcheck.whosane.dev/api/ip),
   or as plain text for a terminal:
 
   ```sh
-  curl https://netcheck-sandbox.whosane.workers.dev/api/ip.txt
+  curl https://netcheck.whosane.dev/api/ip.txt
   ```
 
 - **Ping, traceroute, DNS, HTTP**: a Worker cannot send ICMP, so these run on the free
@@ -24,7 +24,7 @@ No ads, no tracking, no analytics.
   Hosts behind Cloudflare's proxy cannot be reached this way: Workers do not allow TCP
   connections to them, and the page says so.
 
-Sandbox: https://netcheck-sandbox.whosane.workers.dev
+Live: https://netcheck.whosane.dev · Sandbox: https://netcheck-sandbox.whosane.workers.dev
 
 ## Run it locally
 

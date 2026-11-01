@@ -2,3 +2,5 @@ node_modules/
 .wrangler/
 public/version.json
 .dev.vars
+.impeccable/config.local.json
+.impeccable/hook.cache.json
