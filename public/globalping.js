@@ -5,7 +5,7 @@
 // visitor's own quota is used, not ours.
 
 export const API = 'https://api.globalping.io/v1';
-export const TYPES = ['ping', 'traceroute', 'dns', 'http'];
+export const TYPES = ['ping', 'traceroute', 'mtr', 'dns', 'http'];
 // The record types Globalping's dns measurement accepts that people commonly need.
 export const DNS_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SOA'];
 export const MAX_PROBES = 10;
@@ -39,6 +39,7 @@ export function buildMeasurement({ type, target, location, limit, dnsType }) {
   // ("locations[0].limit is not allowed when a global limit is set", 2026-10-31).
   const body = { type, target: t.host, locations: [{ magic }], limit: n };
   if (type === 'ping') body.measurementOptions = { packets: 4 };
+  if (type === 'mtr') body.measurementOptions = { packets: 3 };
   if (type === 'dns') body.measurementOptions = { query: { type: DNS_TYPES.includes(dnsType) ? dnsType : 'A' } };
   if (type === 'http') {
     body.measurementOptions = {
@@ -54,6 +55,14 @@ export function probeLabel(probe = {}) {
   const place = [probe.city, probe.country].filter(Boolean).join(', ');
   const net = probe.network ? `${probe.network}${probe.asn ? ` (AS${probe.asn})` : ''}` : (probe.asn ? `AS${probe.asn}` : '');
   return [place, net].filter(Boolean).join(' · ');
+}
+
+// Cloudflare reports XX when it does not know the country and T1 for Tor exits;
+// no Globalping probe can match either.
+export function myCountryLocation(ip) {
+  const code = String(ip?.country || '').toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code) || code === 'XX' || code === 'T1') return null;
+  return code;
 }
 
 const round = (n) => (typeof n === 'number' && Number.isFinite(n) ? Math.round(n * 10) / 10 : null);
@@ -74,6 +83,12 @@ export function summarize(type, result = {}) {
       const ms = (last?.timings || []).map((x) => x.rtt).filter((x) => typeof x === 'number');
       return { kind: 'traceroute', hops: hops.length, lastMs: ms.length ? round(Math.min(...ms)) : null };
     }
+    case 'mtr': {
+      const hops = result.hops || [];
+      const last = hops[hops.length - 1]?.stats;
+      if (!last) return { kind: 'failed' };
+      return { kind: 'mtr', hops: hops.length, lastAvg: round(last.avg), lastLoss: round(last.loss) };
+    }
     case 'dns': {
       const answers = (result.answers || []).map((a) => a.value);
       return { kind: 'dns', answers, ms: round(result.timings?.total) };
@@ -85,24 +100,35 @@ export function summarize(type, result = {}) {
   return { kind: 'failed' };
 }
 
+async function apiError(res) {
+  let msg = '';
+  try {
+    // "Parameter validation failed." alone says nothing; the reason is in params.
+    const e = (await res.json())?.error || {};
+    msg = [e.message, ...Object.values(e.params || {})].filter(Boolean).join(' ');
+  } catch {}
+  return new Error(msg || `http-${res.status}`);
+}
+
 // Polls a measurement until it is no longer in progress. The API asks clients to
 // poll no faster than every 500 ms; 30 s covers a slow traceroute.
-export async function runMeasurement(body, { onUpdate, signal, fetchImpl = fetch, intervalMs = 500, maxMs = 30000 } = {}) {
-  const res = await fetchImpl(`${API}/measurements`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal,
-  });
+// fallbackUrl: the Worker's keyed proxy (#13). Used only when the visitor's own
+// anonymous quota is spent (429): a key is shared by every visitor, so spending it
+// first would leave nothing for the people who actually ran out.
+export async function runMeasurement(body, { onUpdate, signal, fetchImpl = fetch, intervalMs = 500, maxMs = 30000, fallbackUrl = null } = {}) {
+  const init = { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal };
+  let res = await fetchImpl(`${API}/measurements`, init);
   const quota = {
     remaining: Number(res.headers.get('x-ratelimit-remaining')),
     reset: Number(res.headers.get('x-ratelimit-reset')),
   };
+  let viaKey = false;
+  if (res.status === 429 && fallbackUrl) {
+    const keyed = await fetchImpl(fallbackUrl, init);
+    if (keyed.ok) { res = keyed; viaKey = true; }
+  }
   if (!res.ok) {
-    let msg = '';
-    try {
-      // "Parameter validation failed." alone says nothing; the reason is in params.
-      const e = (await res.json())?.error || {};
-      msg = [e.message, ...Object.values(e.params || {})].filter(Boolean).join(' ');
-    } catch {}
-    const err = new Error(res.status === 429 ? 'rate-limited' : (msg || `http-${res.status}`));
+    const err = res.status === 429 ? new Error('rate-limited') : await apiError(res);
     err.quota = quota;
     throw err;
   }
@@ -113,7 +139,7 @@ export async function runMeasurement(body, { onUpdate, signal, fetchImpl = fetch
     const r = await fetchImpl(`${API}/measurements/${encodeURIComponent(id)}`, { signal });
     const m = await r.json();
     onUpdate?.(m, quota);
-    if (m.status !== 'in-progress') return { measurement: m, quota };
-    if (Date.now() - started > maxMs) return { measurement: m, quota, timedOut: true };
+    if (m.status !== 'in-progress') return { measurement: m, quota, viaKey };
+    if (Date.now() - started > maxMs) return { measurement: m, quota, viaKey, timedOut: true };
   }
 }

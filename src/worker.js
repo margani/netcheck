@@ -1,5 +1,5 @@
 import { connect } from 'cloudflare:sockets';
-import { connectErrorCode, ipReport, json, parseTcpTarget } from './lib.js';
+import { checkProxyRequest, connectErrorCode, ipReport, json, parseTcpTarget } from './lib.js';
 
 const TCP_TIMEOUT_MS = 5000;
 
@@ -33,6 +33,30 @@ async function tcpCheck(url, request) {
   }
 }
 
+// Fallback for visitors whose own anonymous Globalping quota is spent (#13): the
+// same request, sent with the netcheck key from the GLOBALPING_TOKEN secret. The
+// token never leaves the Worker. Without the secret this answers 503 and the page
+// shows its normal "quota used up" message.
+async function globalpingProxy(request, env, url) {
+  if (request.method !== 'POST') return json({ error: 'method-not-allowed' }, 405);
+  if (!env.GLOBALPING_TOKEN) return json({ error: 'no-token' }, 503);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'bad-request' }, 400); }
+  const check = checkProxyRequest(request.headers.get('origin'), url.origin, body);
+  if (check.error) return json({ error: check.error }, check.error === 'forbidden-origin' ? 403 : 400);
+  const res = await fetch('https://api.globalping.io/v1/measurements', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GLOBALPING_TOKEN}` },
+    body: JSON.stringify(body),
+  });
+  // Pass Globalping's answer through, without its rate-limit headers: those describe
+  // the shared key, not the visitor.
+  return new Response(res.body, {
+    status: res.status,
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -46,6 +70,8 @@ export default {
         });
       case '/api/tcp':
         return tcpCheck(url, request);
+      case '/api/gp/measurements':
+        return globalpingProxy(request, env, url);
     }
     if (url.pathname.startsWith('/api/')) return json({ error: 'not-found' }, 404);
     return env.ASSETS.fetch(request);

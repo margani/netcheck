@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMeasurement, parseTarget, probeLabel, runMeasurement, summarize, MAX_PROBES } from '../public/globalping.js';
+import { buildMeasurement, myCountryLocation, parseTarget, probeLabel, runMeasurement, summarize, MAX_PROBES, TYPES } from '../public/globalping.js';
 
 test('parseTarget strips URLs down to what each check needs', () => {
   assert.equal(parseTarget('example.com').host, 'example.com');
@@ -27,7 +27,7 @@ test('buildMeasurement makes valid Globalping bodies', () => {
   assert.deepEqual(http.measurementOptions, { protocol: 'HTTP', request: { method: 'HEAD', path: '/p', query: 'q=1' }, port: 8080 });
   assert.equal(buildMeasurement({ type: 'traceroute', target: 'a.com', limit: 999 }).limit, MAX_PROBES);
   assert.equal(buildMeasurement({ type: 'traceroute', target: 'a.com', limit: 0 }).limit, 3);
-  assert.throws(() => buildMeasurement({ type: 'mtr', target: 'a.com' }), /bad-type/);
+  assert.throws(() => buildMeasurement({ type: 'bogus', target: 'a.com' }), /bad-type/);
   assert.throws(() => buildMeasurement({ type: 'ping', target: '  ' }), /bad-target/);
 });
 
@@ -85,4 +85,51 @@ test('runMeasurement reports rate limiting and API errors', async () => {
   await assert.rejects(
     runMeasurement({}, { fetchImpl: fakeFetch([{ status: 422, body: { error: { message: 'No suitable probes supporting IPv6 found.' } } }]).impl }),
     /No suitable probes/);
+});
+
+test('MTR measurements and summaries (#11)', () => {
+  assert.ok(TYPES.includes('mtr'));
+  const body = buildMeasurement({ type: 'mtr', target: 'https://github.com/', limit: 2 });
+  assert.deepEqual(body, { type: 'mtr', target: 'github.com', locations: [{ magic: 'world' }], limit: 2, measurementOptions: { packets: 3 } });
+  // Shape from a real Globalping MTR result, 2026-11-01.
+  const result = { status: 'finished', hops: [
+    { stats: { avg: 1.2, loss: 0 } },
+    { stats: { min: 11.262, max: 12.05, avg: 11.7, total: 3, loss: 33.3 } },
+  ] };
+  assert.deepEqual(summarize('mtr', result), { kind: 'mtr', hops: 2, lastAvg: 11.7, lastLoss: 33.3 });
+  assert.deepEqual(summarize('mtr', { status: 'finished', hops: [] }), { kind: 'failed' });
+});
+
+test('myCountryLocation turns /api/ip data into a Globalping location (#12)', () => {
+  assert.equal(myCountryLocation({ country: 'IR' }), 'IR');
+  assert.equal(myCountryLocation({ country: 'gb' }), 'GB');
+  // Cloudflare uses XX for unknown and T1 for Tor: no probes can match those.
+  assert.equal(myCountryLocation({ country: 'XX' }), null);
+  assert.equal(myCountryLocation({ country: 'T1' }), null);
+  assert.equal(myCountryLocation({}), null);
+  assert.equal(myCountryLocation(null), null);
+});
+
+test('runMeasurement falls back to the keyed proxy only on 429 (#13)', async () => {
+  const { impl, calls } = fakeFetch([
+    { status: 429, body: {}, headers: { 'x-ratelimit-remaining': '0' } },
+    { status: 202, body: { id: 'k1' } },
+    { status: 200, body: { status: 'finished', results: [] } },
+  ]);
+  const out = await runMeasurement({ type: 'ping' }, { fetchImpl: impl, intervalMs: 1, fallbackUrl: '/api/gp/measurements' });
+  assert.equal(out.viaKey, true);
+  assert.equal(calls[1].url, '/api/gp/measurements');
+  assert.equal(calls[1].opts.method, 'POST');
+  assert.match(calls[2].url, /api\.globalping\.io\/v1\/measurements\/k1$/, 'polling stays on the public API');
+});
+
+test('runMeasurement without a configured key still reports rate limiting (#13)', async () => {
+  const { impl } = fakeFetch([{ status: 429, body: {} }, { status: 503, body: { error: 'no-token' } }]);
+  await assert.rejects(runMeasurement({}, { fetchImpl: impl, fallbackUrl: '/api/gp/measurements' }), /rate-limited/);
+});
+
+test('runMeasurement does not use the key for other errors (#13)', async () => {
+  const { impl, calls } = fakeFetch([{ status: 422, body: { error: { message: 'No suitable probes' } } }]);
+  await assert.rejects(runMeasurement({}, { fetchImpl: impl, fallbackUrl: '/api/gp/measurements' }), /No suitable probes/);
+  assert.equal(calls.length, 1);
 });
