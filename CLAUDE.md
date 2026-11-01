@@ -33,6 +33,13 @@ without an interview; every line is marked inferred until the owner confirms it)
 - Globalping: the request takes one global `limit`; a per-location `limit` next to it is
   rejected with "Parameter validation failed" (2026-10-31). Show the API's `params` in errors.
   Anonymous quota is 250 tests per hour per IP; each probe counts as one test.
+- The Globalping key (Worker secret `GLOBALPING_TOKEN`, #13) is shared by every visitor (500
+  tests/hour in total), while anonymous calls give each visitor their own 250/hour. So the page
+  always calls Globalping anonymously first and uses `/api/gp/measurements` only after a 429.
+  The proxy accepts same-origin requests only, the page's check types, at most 10 probes, and
+  strips Globalping's rate-limit headers. Never ship the token to the browser.
+- Locally: `wrangler dev --var GLOBALPING_TOKEN:fake` exercises the proxy path (Globalping
+  answers 401 for the fake token).
 - Screenshots: local `wrangler dev` fills `request.cf` with the real location of the machine.
   Mock `/api/ip` with demo data (203.0.113.7) before taking any screenshot that is posted.
 

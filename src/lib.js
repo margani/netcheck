@@ -96,3 +96,20 @@ export function connectErrorCode(err) {
   if (/cannot connect to the specified address|consider using fetch/i.test(msg)) return 'cloudflare-host';
   return 'connect-failed';
 }
+
+const PROXY_TYPES = ['ping', 'traceroute', 'mtr', 'dns', 'http'];
+const PROXY_MAX_PROBES = 10;
+
+// Gate for the keyed Globalping proxy (#13). The key is shared by every visitor,
+// so only this page (same origin) may spend it, and only on requests the page
+// itself would make: its check types, at most 10 probes, a handful of locations.
+export function checkProxyRequest(origin, selfOrigin, body) {
+  if (!origin || origin !== selfOrigin) return { error: 'forbidden-origin' };
+  if (!body || typeof body !== 'object') return { error: 'bad-request' };
+  const { type, target, limit, locations } = body;
+  if (!PROXY_TYPES.includes(type)) return { error: 'bad-request' };
+  if (typeof target !== 'string' || !target || target.length > 253) return { error: 'bad-request' };
+  if (!Number.isInteger(limit) || limit < 1 || limit > PROXY_MAX_PROBES) return { error: 'bad-request' };
+  if (!Array.isArray(locations) || locations.length > 5) return { error: 'bad-request' };
+  return { ok: true };
+}
